@@ -62,7 +62,11 @@ def live_attendance_scanner(enrolled_students):
         mode=WebRtcMode.SENDRECV,
         rtc_configuration=RTC_CONFIGURATION,
         media_stream_constraints={
-            "video": True,
+            "video": {
+                "width": {"ideal": 640},
+                "height": {"ideal": 480},
+                "frameRate": {"ideal": 15}
+            },
             "audio": False
         },
         video_processor_factory=LiveAttendanceProcessor,
