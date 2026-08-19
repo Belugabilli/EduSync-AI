@@ -34,7 +34,16 @@ class LiveAttendanceProcessor(VideoProcessorBase):
         self.frame_count += 1
         if self.frame_count % 5 == 0:
             rgb_img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-            detected_student_dict, _, _ = predict_attendance(rgb_img)
+            
+            # Downscale to max 640px width to ensure real-time ML performance
+            if rgb_img.shape[1] > 640:
+                ratio = 640.0 / rgb_img.shape[1]
+                new_dim = (640, int(rgb_img.shape[0] * ratio))
+                ml_img = cv2.resize(rgb_img, new_dim, interpolation=cv2.INTER_AREA)
+            else:
+                ml_img = rgb_img
+
+            detected_student_dict, _, _ = predict_attendance(ml_img)
             
             if detected_student_dict:
                 for sid in detected_student_dict.keys():
