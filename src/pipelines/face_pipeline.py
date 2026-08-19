@@ -38,7 +38,7 @@ def get_face_embeddings(image_np):
         face_descriptor = facerec.compute_face_descriptor(
             image_np,
             shape,
-            1
+            5
         )
 
         encodings.append(
