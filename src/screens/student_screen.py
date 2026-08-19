@@ -343,7 +343,7 @@ def student_screen():
 
         student_email = st.text_input(
             "Email Address",
-            placeholder="E.g. hanish@example.com"
+            placeholder="E.g. hanish.25bce10632@vitbhopal.ac.in"
         )
 
         student_password = st.text_input(
