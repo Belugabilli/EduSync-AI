@@ -77,10 +77,13 @@ def student_dashboard():
 
     st.space()
 
-    c1, c2 =st.columns(2)
+    c1, c2, c3 = st.columns([2, 1, 1], vertical_alignment='center')
     with c1:
         st.header('Your Enrolled Subjects')
     with c2:
+        if st.button('Refresh', type='secondary', width='stretch', icon=":material/refresh:"):
+            st.rerun()
+    with c3:
         if st.button('Enroll in Subject', type='primary', width='stretch'):
             enroll_dialog()
 

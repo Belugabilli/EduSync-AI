@@ -151,55 +151,41 @@ def face_enrollment_video():
 
     if ctx.state.playing and ctx.video_processor:
 
-        frame = ctx.video_processor.latest_frame
-
-        if frame is not None:
-
-            display_img = cv2.flip(
-                frame,
-                1
-            )
-
-            st.image(
-                display_img,
-                channels="BGR",
-                width="stretch"
-            )
-
-    if ctx.state.playing and ctx.video_processor:
-
         if st.button(
             f"Capture {pose_title}",
             type="primary",
             width="stretch",
             key=f"capture_{pose_key}"
         ):
-
             frame = ctx.video_processor.latest_frame
-
             if frame is not None:
-
                 rgb_img = cv2.cvtColor(
                     frame,
                     cv2.COLOR_BGR2RGB
                 )
-
                 st.session_state.enrollment_frames.append(
                     rgb_img
                 )
-
                 st.session_state.enrollment_pose += 1
-
                 time.sleep(0.2)
-
                 st.rerun()
-
             else:
-
                 st.warning(
                     "Camera frame not available. "
                     "Please wait a moment and try again."
                 )
+
+        frame = ctx.video_processor.latest_frame
+        if frame is not None:
+            display_img = cv2.flip(
+                frame,
+                1
+            )
+            st.image(
+                display_img,
+                channels="BGR",
+                width="stretch"
+            )
 
     st.caption(
         f"Captured "
