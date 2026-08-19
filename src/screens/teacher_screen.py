@@ -410,8 +410,10 @@ def teacher_tab_take_attendance():
     )
     enrolled_students = enrolled_res.data or []
 
-    if not existing_attendance.data:
-        live_attendance_scanner(enrolled_students)
+    live_attendance_scanner(enrolled_students)
+
+    if existing_attendance.data:
+        st.info("ℹ️ **Note:** You have already submitted attendance for this selected date. The 'Mark Attendance' button is disabled to prevent duplicate entries.")
         
     has_live_scans = bool(st.session_state.get('final_detected_ids', set()))
 
