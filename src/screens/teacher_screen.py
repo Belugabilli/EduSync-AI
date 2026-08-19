@@ -25,6 +25,7 @@ from src.database.db import (
 from src.components.dialog_create_subject import create_subject_dialog
 from src.components.dialog_share_subject import share_subject_dialog
 from src.components.dialog_add_photo import add_photos_dialog
+from src.components.live_attendance_scanner import live_attendance_scanner
 
 from src.pipelines.face_pipeline import predict_attendance
 from src.components.dialog_attendance_results import attendance_result_dialog
@@ -395,8 +396,30 @@ def teacher_tab_take_attendance():
         )
 
     # ---------------------------------------------------------
+    # Live Biometric Scanner
+    # ---------------------------------------------------------
+
+    st.divider()
+    
+    enrolled_res = (
+        supabase
+        .table('subject_students')
+        .select("*, students(*)")
+        .eq('subject_id', selected_subject_id)
+        .execute()
+    )
+    enrolled_students = enrolled_res.data or []
+
+    if not existing_attendance.data:
+        live_attendance_scanner(enrolled_students)
+        
+    has_live_scans = bool(st.session_state.get('final_detected_ids', set()))
+
+    # ---------------------------------------------------------
     # Attendance controls
     # ---------------------------------------------------------
+
+    st.divider()
 
     c1, c2, c3 = st.columns(3)
 
@@ -410,11 +433,14 @@ def teacher_tab_take_attendance():
             disabled=not (
                 has_photos
                 or has_videos
+                or has_live_scans
             )
         ):
 
             st.session_state.attendance_images = []
             st.session_state.attendance_media_nonce += 1
+            if 'final_detected_ids' in st.session_state:
+                st.session_state.final_detected_ids = set()
 
             st.rerun()
 
@@ -429,6 +455,7 @@ def teacher_tab_take_attendance():
                 (
                     not has_photos
                     and not has_videos
+                    and not has_live_scans
                 )
                 or bool(existing_attendance.data)
             )
@@ -531,6 +558,14 @@ def teacher_tab_take_attendance():
                     progress_placeholder.progress(
                         completed_steps / total_steps
                     )
+
+                if has_live_scans:
+                    for sid in st.session_state.final_detected_ids:
+                        mark_detected_student(
+                            detected_sources,
+                            sid,
+                            "Live Biometric Scanner"
+                        )
 
                 results = []
                 attendance_to_log = []
