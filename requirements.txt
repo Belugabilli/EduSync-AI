@@ -18,3 +18,5 @@ bcrypt
 segno
 pillow
 opencv-python-headless
+av
+streamlit-webrtc
