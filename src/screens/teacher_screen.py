@@ -1201,6 +1201,7 @@ def teacher_screen_login():
 def register_teacher(
     employee_id,
     teacher_name,
+    teacher_email,
     teacher_pass,
     teacher_pass_confirm
 ):
@@ -1208,6 +1209,7 @@ def register_teacher(
     if (
         not employee_id
         or not teacher_name
+        or not teacher_email
         or not teacher_pass
     ):
 
@@ -1228,7 +1230,8 @@ def register_teacher(
         create_teacher(
             employee_id.strip(),
             teacher_pass,
-            teacher_name.strip()
+            teacher_name.strip(),
+            email=teacher_email.strip()
         )
 
         return True, "Successfully created! Login now."
@@ -1281,6 +1284,11 @@ def teacher_screen_register():
         placeholder='Enter your Full Name'
     )
 
+    teacher_email = st.text_input(
+        "Email Address",
+        placeholder="Enter your Email ID"
+    )
+
     teacher_pass = st.text_input(
         "Password",
         type='password',
@@ -1309,6 +1317,7 @@ def teacher_screen_register():
             success, message = register_teacher(
                 employee_id,
                 teacher_name,
+                teacher_email,
                 teacher_pass,
                 teacher_pass_confirm
             )

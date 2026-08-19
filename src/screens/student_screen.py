@@ -341,6 +341,11 @@ def student_screen():
             placeholder="E.g. Hanish Singla"
         )
 
+        student_email = st.text_input(
+            "Email Address",
+            placeholder="E.g. hanish@example.com"
+        )
+
         student_password = st.text_input(
             "Password",
             type="password",
@@ -384,11 +389,12 @@ def student_screen():
                 if (
                     not registration_number
                     or not student_name
+                    or not student_email
                     or not student_password
                 ):
 
                     st.warning(
-                        "Registration Number, Name and Password "
+                        "Registration Number, Name, Email, and Password "
                         "are required!"
                     )
 
@@ -404,6 +410,7 @@ def student_screen():
                     registration_number = (
                         registration_number.strip()
                     )
+                    student_email = student_email.strip()
 
                     # Check unique Registration Number
                     from src.database.db import check_student_exists
@@ -448,10 +455,16 @@ def student_screen():
                                 st.error(
                                     "Not enough good face samples were "
                                     "captured. Please complete the "
-                                    "enrollment again with a clear face."
+                                    "enrollment process."
                                 )
 
                             else:
+
+                                final_embedding = (
+                                    average_embeddings(
+                                        face_embeddings
+                                    )
+                                )
 
                                 try:
 
@@ -459,7 +472,8 @@ def student_screen():
                                         registration_number,
                                         student_name.strip(),
                                         student_password,
-                                        face_embedding=face_embeddings
+                                        face_embedding=final_embedding,
+                                        email=student_email
                                     )
 
                                     if response_data:

@@ -23,12 +23,13 @@ def check_teacher_exists(employee_id):
     return len(response.data) > 0
 
 
-def create_teacher(employee_id, password, name):
+def create_teacher(employee_id, password, name, email=None):
 
     data = {
         "employee_id": employee_id,
         "password": hash_pass(password),
-        "name": name
+        "name": name,
+        "email": email
     }
 
     response = (
@@ -69,13 +70,15 @@ def create_student(
     registration_number,
     new_name,
     password,
-    face_embedding=None
+    face_embedding=None,
+    email=None
 ):
     data = {
         "registration_number": registration_number,
         "name": new_name,
         "password": hash_pass(password),
-        "face_embedding": face_embedding
+        "face_embedding": face_embedding,
+        "email": email
     }
 
     response = supabase.table("students").insert(data).execute()
