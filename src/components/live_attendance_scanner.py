@@ -25,6 +25,7 @@ class LiveAttendanceProcessor(VideoProcessorBase):
     def __init__(self):
         self.detected_ids = set()
         self.frame_count = 0
+        self.detection_counts = {}
 
     def recv(self, frame):
         img = frame.to_ndarray(format="bgr24")
@@ -37,7 +38,11 @@ class LiveAttendanceProcessor(VideoProcessorBase):
             
             if detected_student_dict:
                 for sid in detected_student_dict.keys():
-                    self.detected_ids.add(sid)
+                    self.detection_counts[sid] = self.detection_counts.get(sid, 0) + 1
+                    
+                    # Require 3 positive hits to eliminate 1-frame glitches (False Positives)
+                    if self.detection_counts[sid] >= 3:
+                        self.detected_ids.add(sid)
 
         return av.VideoFrame.from_ndarray(img, format="bgr24")
 
