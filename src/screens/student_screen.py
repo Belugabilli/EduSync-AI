@@ -90,7 +90,6 @@ def student_dashboard():
 
     st.divider()
 
-
     with st.spinner('Loading your enrolled subjects..'):
         subjects = get_student_subjects(student_id)
         logs = get_student_attendance(student_id)
@@ -99,45 +98,95 @@ def student_dashboard():
 
     for log in logs:
         sid = log['subject_id']
-
         if sid not in stats_map:
             stats_map[sid] = {"total":0, "attended": 0}
 
         stats_map[sid]['total'] +=1
-
         if log.get('is_present'):
             stats_map[sid]['attended'] += 1
 
+    tab1, tab2 = st.tabs(["📚 My Subjects", "📊 Attendance History"])
 
-    cols = st.columns(2)
-    for i, sub_node in enumerate(subjects):
-        sub = sub_node['subjects']
-        sid = sub['subject_id']
+    with tab1:
+        st.write("")
+        cols = st.columns(2)
+        for i, sub_node in enumerate(subjects):
+            sub = sub_node['subjects']
+            sid = sub['subject_id']
 
-
-        stats = stats_map.get(sid,{"total":0, "attended": 0} )
-        def unenroll_button():
-                if st.button("Unenroll from this course", type='tertiary', width='stretch', icon=':material/delete_forever:'):
+            stats = stats_map.get(sid, {"total":0, "attended": 0})
+            def unenroll_button():
+                if st.button("Unenroll from this course", type='tertiary', width='stretch', icon=':material/delete_forever:', key=f"unenroll_{sid}"):
                     unenroll_student_to_subject(student_id, sid)
-                    st.toast(f'Unenrolled from {sub['name']} successfully!')
+                    st.toast(f"Unenrolled from {sub['name']} successfully!")
                     st.rerun()
 
-        with cols[i % 2]:
+            with cols[i % 2]:
+                teacher = sub.get('teachers')
+                faculty_name = teacher.get('name') if teacher else None
 
-            teacher = sub.get('teachers')
-            faculty_name = teacher.get('name') if teacher else None
+                subject_card(
+                    name = sub['name'],
+                    code =sub['subject_code'],
+                    slot = sub['slot'],
+                    faculty = faculty_name,
+                    stats = [
+                        ('📅', 'Total Classes', stats['total']),
+                        ('✅', 'Attended', stats['attended']),
+                    ],
+                    footer_callback=unenroll_button
+                )
 
-            subject_card(
-                name = sub['name'],
-                code =sub['subject_code'],
-                slot = sub['slot'],
-                faculty = faculty_name,
-                stats = [
-                    ('📅', 'Total Classes', stats['total']),
-                    ('✅', 'Attended', stats['attended']),
-                ],
-                footer_callback=unenroll_button
-            )
+    with tab2:
+        st.write("")
+        if not subjects:
+            st.info("You are not enrolled in any subjects yet.")
+        else:
+            import pandas as pd
+            
+            # Group logs by subject
+            subject_logs = {}
+            for log in logs:
+                sid = log['subject_id']
+                if sid not in subject_logs:
+                    subject_logs[sid] = []
+                subject_logs[sid].append(log)
+                
+            for sub_node in subjects:
+                sub = sub_node['subjects']
+                sid = sub['subject_id']
+                stats = stats_map.get(sid, {"total":0, "attended": 0})
+                
+                # Calculate percentage
+                if stats['total'] > 0:
+                    percent = (stats['attended'] / stats['total']) * 100
+                else:
+                    percent = 0.0
+                    
+                st.subheader(f"{sub['name']} ({sub['subject_code']})")
+                
+                # Show quick stats
+                st.markdown(f"**Overall Attendance:** `{percent:.1f}%` ({stats['attended']}/{stats['total']} classes)")
+                
+                sub_logs = subject_logs.get(sid, [])
+                if sub_logs:
+                    # Create DataFrame for display
+                    df_data = []
+                    for log in sub_logs:
+                        date_str = log['attendance_date']
+                        status = "✅ Present" if log.get('is_present') else "❌ Absent"
+                        df_data.append({"Date": date_str, "Status": status})
+                        
+                    df = pd.DataFrame(df_data)
+                    # Sort by date descending
+                    df = df.sort_values(by="Date", ascending=False).reset_index(drop=True)
+                    
+                    st.dataframe(df, use_container_width=True, hide_index=True)
+                else:
+                    st.caption("No attendance logs found for this subject.")
+                    
+                st.divider()
+
     footer_dashboard()
 
 
