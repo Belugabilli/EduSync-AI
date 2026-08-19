@@ -261,7 +261,7 @@ def predict_attendance(class_image_np):
             distances
         )
 
-        resemblance_threshold = 0.45
+        resemblance_threshold = 0.55
 
         if best_match_score <= resemblance_threshold:
 
