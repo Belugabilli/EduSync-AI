@@ -460,11 +460,7 @@ def student_screen():
 
                             else:
 
-                                final_embedding = (
-                                    average_embeddings(
-                                        face_embeddings
-                                    )
-                                )
+                                final_embedding = np.mean(face_embeddings, axis=0).tolist()
 
                                 try:
 
