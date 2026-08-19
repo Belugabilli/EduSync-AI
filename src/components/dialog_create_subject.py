@@ -2,22 +2,75 @@ import streamlit as st
 from src.database.db import create_subject
 
 
-
-@st.dialog("Create New Subject")
+@st.dialog("Create New Course")
 def create_subject_dialog(teacher_id):
-    st.write("Enter the details of new subject")
-    sub_id = st.text_input("Subject Code", placeholder="CS101")
-    sub_name = st.text_input("Subject Name", placeholder="Introduction to Computer Science")
-    sub_section = st.text_input("Section", placeholder="A")
 
+    st.write("Enter the details of your new course")
 
-    if st.button("Create Subject Now", type='primary', width='stretch'):
-        if sub_id and sub_name and sub_section:
+    course_code = st.text_input(
+        "Course Code",
+        placeholder="CSE2001"
+    )
+
+    course_name = st.text_input(
+        "Course Name",
+        placeholder="Data Structures"
+    )
+
+    slot = st.text_input(
+        "Slot",
+        placeholder="A1"
+    )
+
+    if st.button(
+        "Create Course Now",
+        type="primary",
+        width="stretch"
+    ):
+
+        if course_code and course_name and slot:
+
             try:
-                create_subject(sub_id, sub_name, sub_section, teacher_id)
-                st.toast("Subject Created Succesfully!")
-                st.rerun()
+
+                response = create_subject(
+                    course_code.strip().upper(),
+                    course_name.strip(),
+                    slot.strip().upper(),
+                    teacher_id
+                )
+
+                if response:
+
+                    joining_code = response[0]["joining_code"]
+
+                    st.success(
+                        f"Course created successfully!\n\n"
+                        f"Joining Code: {joining_code}"
+                    )
+
+                    st.toast(
+                        "Course Created Successfully!"
+                    )
+
+                    st.rerun()
+
             except Exception as e:
-                st.error(f"Error: {str(e)}")
+
+                if "joining_code" in str(e).lower():
+
+                    st.error(
+                        "This Joining Code already exists. "
+                        "Please check the Course Code and Slot."
+                    )
+
+                else:
+
+                    st.error(
+                        f"Error creating course: {str(e)}"
+                    )
+
         else:
-            st.warning("Please fill all the fields")
+
+            st.warning(
+                "Please fill all the fields."
+            )

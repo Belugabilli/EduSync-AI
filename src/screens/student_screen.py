@@ -6,13 +6,60 @@ from src.components.header import header_dashboard
 from src.components.footer import footer_dashboard
 from PIL import Image
 import numpy as np
-from src.pipelines.face_pipeline import predict_attendance, get_face_embeddings, train_classifier
-from src.pipelines.voice_pipeline import get_voice_embedding
-from src.database.db import get_all_students, create_student, get_student_subjects, get_student_attendance, unenroll_student_to_subject
+from src.pipelines.face_pipeline import (
+    predict_attendance,
+    train_classifier,
+    get_enrollment_embeddings
+)
+from src.database.db import (
+    get_all_students,
+    create_student,
+    student_login,
+    get_student_subjects,
+    get_student_attendance,
+    unenroll_student_to_subject
+)
+from src.database.config import supabase
 import time
 
 from src.components.dialog_enroll import enroll_dialog
 from src.components.subject_card import subject_card
+from src.components.face_enrollment import face_enrollment_video
+
+def login_student(registration_number, password):
+
+    if not registration_number or not password:
+        return False
+
+    student = student_login(
+        registration_number.strip(),
+        password
+    )
+
+    if student:
+
+        st.session_state.user_role = "student"
+        st.session_state.student_data = student
+        st.session_state.is_logged_in = True
+
+        return True
+
+    return False
+
+def register_student(
+    registration_number,
+    student_name,
+    password,
+    password_confirm
+):
+
+    if not registration_number or not student_name or not password:
+        return False, "All fields are required!"
+
+    if password != password_confirm:
+        return False, "Passwords do not match!"
+
+    return True, "Details validated!"
 
 def student_dashboard():
     student_data = st.session_state.student_data
@@ -67,7 +114,7 @@ def student_dashboard():
 
         stats = stats_map.get(sid,{"total":0, "attended": 0} )
         def unenroll_button():
-                if st.button("Unenroll from tihs course", type='tertiary', width='stretch', icon=':material/delete_forever:'):
+                if st.button("Unenroll from this course", type='tertiary', width='stretch', icon=':material/delete_forever:'):
                     unenroll_student_to_subject(student_id, sid)
                     st.toast(f'Unenrolled from {sub['name']} successfully!')
                     st.rerun()
@@ -77,7 +124,7 @@ def student_dashboard():
             subject_card(
                 name = sub['name'],
                 code =sub['subject_code'],
-                section = sub['section'],
+                slot = sub['slot'],
                 stats = [
                     ('📅', 'Total', stats['total']),
                     ('✅', 'Attended', stats['attended']),
@@ -89,100 +136,328 @@ def student_dashboard():
 
 def student_screen():
 
-
     style_background_dashboard()
     style_base_layout()
 
-
+    # Already logged in
     if "student_data" in st.session_state:
         student_dashboard()
         return
-    
-    c1, c2 = st.columns(2, vertical_alignment='center', gap='xxlarge')
+
+    # Default screen = Login
+    if "student_login_type" not in st.session_state:
+        st.session_state.student_login_type = "login"
+
+    # =========================
+    # HEADER
+    # =========================
+
+    c1, c2 = st.columns(
+        2,
+        vertical_alignment="center",
+        gap="xxlarge"
+    )
+
     with c1:
         header_dashboard()
+
     with c2:
-        if st.button("Go back to Home", type='secondary', key='loginbackbtn', shortcut="control+backspace"):
-            st.session_state['login_type'] = None
+        if st.button(
+            "Go back to Home",
+            type="secondary",
+            key="student_home_btn",
+            shortcut="control+backspace"
+        ):
+            st.session_state["login_type"] = None
+            st.session_state.student_login_type = "login"
             st.rerun()
 
-    st.header('Login using FaceID', text_alignment='center')
-    st.space()
-    st.space()
-    
-    show_registration = False
-    photo_source = st.camera_input("Position your face in the center")
+    # =====================================================
+    # STUDENT LOGIN
+    # =====================================================
 
-    if photo_source:
-        img = np.array(Image.open(photo_source))
+    if st.session_state.student_login_type == "login":
 
-        with st.spinner('AI is scanning..'):
-            detected, all_ids, num_faces = predict_attendance(img)
+        st.header(
+            "Student Login",
+            text_alignment="center"
+        )
 
-            if num_faces == 0:
-                st.warning('Face not found!')
-            elif num_faces >1:
-                st.warning('Multiple faces found')
-            else:
-                if detected:
-                    student_id = list(detected.keys())[0]
-                    all_students = get_all_students()
-                    student = next((s for s in all_students if s['student_id']==student_id), None)
+        st.caption(
+            "Login using your Registration Number and Password",
+            text_alignment="center"
+        )
+
+        st.space()
+
+        registration_number = st.text_input(
+            "Registration Number",
+            placeholder="E.g. 25BCE10632"
+        )
+
+        student_password = st.text_input(
+            "Password",
+            type="password",
+            placeholder="Enter your password"
+        )
+
+        st.space()
+
+        btn1, btn2 = st.columns(2)
+
+        with btn1:
+
+            if st.button(
+                "Login",
+                type="primary",
+                icon=":material/login:",
+                width="stretch"
+            ):
+
+                if not registration_number or not student_password:
+
+                    st.warning(
+                        "Registration Number and Password are required!"
+                    )
+
+                else:
+
+                    student = student_login(
+                        registration_number.strip(),
+                        student_password
+                    )
 
                     if student:
+
                         st.session_state.is_logged_in = True
-                        st.session_state.user_role = 'student'
+                        st.session_state.user_role = "student"
                         st.session_state.student_data = student
-                        st.toast(f'Welcome Back {student['name']}')
+
+                        st.toast(
+                            f"Welcome Back {student['name']}! 👋"
+                        )
+
                         time.sleep(1)
                         st.rerun()
+
+                    else:
+
+                        st.error(
+                            "Invalid Registration Number or Password."
+                        )
+
+        with btn2:
+
+            if st.button(
+                "Register Instead",
+                icon=":material/person_add:",
+                width="stretch"
+            ):
+
+                st.session_state.student_login_type = "register"
+                st.rerun()
+
+    # =====================================================
+    # STUDENT REGISTRATION
+    # =====================================================
+
+    else:
+
+        st.header(
+            "Create Student Account",
+            text_alignment="center"
+        )
+
+        st.caption(
+            "Create your EduSync AI student profile",
+            text_alignment="center"
+        )
+
+        st.space()
+
+        registration_number = st.text_input(
+            "Registration Number",
+            placeholder="E.g. 25BCE10632"
+        )
+
+        student_name = st.text_input(
+            "Full Name",
+            placeholder="E.g. Hanish Singla"
+        )
+
+        student_password = st.text_input(
+            "Password",
+            type="password",
+            placeholder="Create a password"
+        )
+
+        student_password_confirm = st.text_input(
+            "Confirm Password",
+            type="password",
+            placeholder="Re-enter your password"
+        )
+
+        st.divider()
+
+        # =========================
+        # FACE ENROLLMENT
+        # =========================
+
+        st.subheader("AI Face Enrollment")
+
+        enrollment_frames = face_enrollment_video()
+
+        st.space()
+
+        btn1, btn2 = st.columns(2)
+
+        # =========================
+        # CREATE ACCOUNT
+        # =========================
+
+        with btn1:
+
+            if st.button(
+                "Create Account",
+                type="primary",
+                icon=":material/person_add:",
+                width="stretch"
+            ):
+
+                # Required fields
+                if (
+                    not registration_number
+                    or not student_name
+                    or not student_password
+                ):
+
+                    st.warning(
+                        "Registration Number, Name and Password "
+                        "are required!"
+                    )
+
+                # Password confirmation
+                elif student_password != student_password_confirm:
+
+                    st.error(
+                        "Passwords do not match!"
+                    )
+
                 else:
-                    st.info('Face not recognized! You might be a new student!')
-                    show_registration = True
-    if show_registration:
-        with st.container(border=True):
-            st.header('Register new Profile')
-            new_name = st.text_input("Enter your name", placeholder='E.g. Hamza Rizvi')
 
-            st.subheader('Optional : Voice Enrollment')
-            st.info("Enroll your for voice only attendance")
+                    registration_number = (
+                        registration_number.strip()
+                    )
 
+                    # Check unique Registration Number
+                    from src.database.db import check_student_exists
 
-            audio_data = None
+                    if check_student_exists(
+                        registration_number
+                    ):
 
-            try:
-                audio_data = st.audio_input('Record a short phrase like I am present, My name is Akash.')
-            except Exception:
-                st.error('Audio Data failed!')
+                        st.error(
+                            "This Registration Number is already "
+                            "registered!"
+                        )
 
-            if st.button('Create Account', type='primary'):
-                if new_name:
-                    with st.spinner('Creating profile..'):
-                        img = np.array(Image.open(photo_source))
-                        encodings= get_face_embeddings(img)
-                        if encodings:
-                            face_emb = encodings[0].tolist()
+                    # Face is mandatory
+                    elif not enrollment_frames:
 
-                            voice_emb = None
-                            if audio_data:
-                                voice_emb = get_voice_embedding(audio_data.read())
+                        st.warning(
+                            "Please complete the AI Face Enrollment "
+                            "before creating your account."
+                        )
 
-                            response_data = create_student(new_name, face_embedding=face_emb, voice_embedding=voice_emb)
+                    else:
 
-                            if response_data:
-                                train_classifier()
-                                st.session_state.is_logged_in = True
-                                st.session_state.user_role = 'student'
-                                st.session_state.student_data = response_data[0]
-                                st.toast(f'Profile Created! Hi {new_name}!')
-                                time.sleep(1)
-                                st.rerun()
-                        else:
-                            st.error('Couldnt capture your facial features for registration')
+                        with st.spinner(
+                            "Analyzing your enrollment frames..."
+                        ):
 
-                else:
-                    st.warning('Please enter your name!')
+                            face_embeddings = get_enrollment_embeddings(
+                                enrollment_frames
+                            )
 
+                            if not face_embeddings:
 
-        
+                                st.error(
+                                    "Couldn't extract facial features "
+                                    "from the enrollment video. "
+                                    "Please try the enrollment again."
+                                )
+
+                            elif len(face_embeddings) < 3:
+
+                                st.error(
+                                    "Not enough good face samples were "
+                                    "captured. Please complete the "
+                                    "enrollment again with a clear face."
+                                )
+
+                            else:
+
+                                try:
+
+                                    response_data = create_student(
+                                        registration_number,
+                                        student_name.strip(),
+                                        student_password,
+                                        face_embedding=face_embeddings
+                                    )
+
+                                    if response_data:
+
+                                        train_classifier()
+
+                                        # Clear enrollment data
+                                        st.session_state.enrollment_frames = []
+                                        st.session_state.enrollment_pose = 0
+                                        st.session_state.enrollment_started = False
+                                        st.session_state.enrollment_complete = False
+
+                                        st.success(
+                                            "Account created successfully! "
+                                            "Your AI face profile has been enrolled."
+                                        )
+
+                                        st.session_state.student_login_type = "login"
+
+                                        time.sleep(1)
+
+                                        st.rerun()
+
+                                except Exception as e:
+
+                                    if (
+                                        "registration_number"
+                                        in str(e).lower()
+                                    ):
+
+                                        st.error(
+                                            "This Registration Number "
+                                            "is already registered!"
+                                        )
+
+                                    else:
+
+                                        st.error(
+                                            f"Registration failed: {str(e)}"
+                                        )
+
+        # =========================
+        # GO TO LOGIN
+        # =========================
+
+        with btn2:
+
+            if st.button(
+                "Login Instead",
+                icon=":material/login:",
+                width="stretch"
+            ):
+
+                st.session_state.student_login_type = "login"
+                st.rerun()
+
     footer_dashboard()

@@ -14,25 +14,51 @@ def show_attendance_result(df, logs):
 
     with col1:
         if st.button('Discard', width='stretch'):
-            st.session_state.voice_attendance_results = None
             st.session_state.attendance_images = []
+            st.session_state.attendance_media_nonce = (
+                st.session_state.get(
+                    "attendance_media_nonce",
+                    0
+                ) + 1
+            )
             st.rerun()
 
     with col2:
-        if st.button('Confirm & Save', width='stretch', type='primary'):
+
+        if st.button(
+            'Confirm & Save',
+            width='stretch',
+            type='primary',
+            icon=':material/save:'
+        ):
+
             try:
+
                 create_attendance(logs)
-                st.toast("Attendance taken")
+
+                st.toast(
+                    "Attendance saved successfully! ✅"
+                )
+
                 st.session_state.attendance_images = []
-                st.session_state.voice_attendance_results = None
+                st.session_state.attendance_media_nonce = (
+                    st.session_state.get(
+                        "attendance_media_nonce",
+                        0
+                    ) + 1
+                )
+
                 st.rerun()
+
             except Exception as e:
-                st.error('Sync failed!')
+
+                st.error(
+                    f"Failed to save attendance: {str(e)}"
+                )
 
 
 
 @st.dialog("Attendance Reports")
 def attendance_result_dialog(df, logs):
     show_attendance_result(df, logs)
-
 
