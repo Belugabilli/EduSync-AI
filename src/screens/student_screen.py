@@ -121,12 +121,16 @@ def student_dashboard():
 
         with cols[i % 2]:
 
+            teacher = sub.get('teachers')
+            faculty_name = teacher.get('name') if teacher else None
+
             subject_card(
                 name = sub['name'],
                 code =sub['subject_code'],
                 slot = sub['slot'],
+                faculty = faculty_name,
                 stats = [
-                    ('📅', 'Total', stats['total']),
+                    ('📅', 'Total Classes', stats['total']),
                     ('✅', 'Attended', stats['attended']),
                 ],
                 footer_callback=unenroll_button

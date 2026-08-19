@@ -12,18 +12,6 @@ def main():
         page_title='EduSync AI - Smart Academic Management',
         page_icon= "https://i.ibb.co/YTYGn5qV/logo.png"
     )
-
-    st.markdown(
-        """
-        <style>
-        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
-        html, body, [class*="css"], [class*="st-"]  {
-            font-family: 'Poppins', sans-serif !important;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
     if 'login_type' not in st.session_state:
         st.session_state['login_type'] = None
 

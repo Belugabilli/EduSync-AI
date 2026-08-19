@@ -339,7 +339,7 @@ def backfill_attendance_for_student_subject(
 
 
 def get_student_subjects(student_id):
-    response = supabase.table('subject_students').select('*, subjects(*)').eq('student_id', student_id).execute()
+    response = supabase.table('subject_students').select('*, subjects(*, teachers(name))').eq('student_id', student_id).execute()
     return response.data
 
 
