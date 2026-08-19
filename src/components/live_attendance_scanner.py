@@ -103,5 +103,22 @@ def live_attendance_scanner(enrolled_students):
                     status_placeholder.info("Scanning for faces... ⏳")
                     
             time.sleep(0.5)
+    else:
+        # Not playing. Display final results if they exist.
+        if st.session_state.final_detected_ids:
+            names = [id_to_name.get(sid, "Unknown") for sid in st.session_state.final_detected_ids]
+            names.sort()
+            
+            html_names = "".join([f"<li style='color:#EB459E; font-weight:bold;'>{name}</li>" for name in names])
+            
+            status_placeholder.markdown(
+                f"""
+                <div style="background:#EB459E10; padding:20px; border-radius:15px; border:1px solid #EB459E;">
+                    <h4>✅ Scanner Stopped. Scanned ({len(names)} Students):</h4>
+                    <ul>{html_names}</ul>
+                </div>
+                """, 
+                unsafe_allow_html=True
+            )
             
     return st.session_state.final_detected_ids

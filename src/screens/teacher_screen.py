@@ -447,9 +447,9 @@ def teacher_tab_take_attendance():
     with c2:
 
         if st.button(
-            'Run AI Attendance',
+            'Mark Attendance',
             width='stretch',
-            type='secondary',
+            type='primary',
             icon=':material/analytics:',
             disabled=(
                 (

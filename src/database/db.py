@@ -305,10 +305,6 @@ def backfill_attendance_for_student_subject(
         if log.get("attendance_date")
     }
 
-    attendance_dates.add(
-        datetime.now().date().isoformat()
-    )
-
     existing_logs_response = (
         supabase
         .table("attendance_logs")
