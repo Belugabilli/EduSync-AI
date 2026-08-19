@@ -148,24 +148,25 @@ def get_trained_model():
     if len(X) == 0:
         return None
 
-    clf = SVC(
-        kernel="linear",
-        probability=True,
-        class_weight="balanced"
-    )
+    unique_classes = list(set(y))
+    clf = None
 
-    try:
-
-        clf.fit(X, y)
-
-    except ValueError:
-
-        return None
+    if len(unique_classes) > 1:
+        clf = SVC(
+            kernel="linear",
+            probability=True,
+            class_weight="balanced"
+        )
+        try:
+            clf.fit(X, y)
+        except ValueError:
+            pass
 
     return {
         "clf": clf,
         "X": X,
-        "y": y
+        "y": y,
+        "unique_classes": unique_classes
     }
 
 
@@ -197,21 +198,12 @@ def predict_attendance(class_image_np):
         )
 
     clf = model_data["clf"]
-
     X_train = model_data["X"]
     y_train = model_data["y"]
-
-    all_students = sorted(
-        list(set(y_train))
-    )
+    all_students = sorted(model_data["unique_classes"])
 
     if not all_students:
-
-        return (
-            detected_student,
-            [],
-            len(encodings)
-        )
+        return (detected_student, [], len(encodings))
 
     for encoding in encodings:
 
@@ -219,19 +211,10 @@ def predict_attendance(class_image_np):
         # SVM candidate prediction
         # ---------------------------------------------
 
-        if len(all_students) >= 2:
-
-            predicted_id = int(
-                clf.predict(
-                    [encoding]
-                )[0]
-            )
-
+        if clf is not None and len(all_students) >= 2:
+            predicted_id = int(clf.predict([encoding])[0])
         else:
-
-            predicted_id = int(
-                all_students[0]
-            )
+            predicted_id = int(all_students[0])
 
         # ---------------------------------------------
         # Compare against ALL embeddings belonging
