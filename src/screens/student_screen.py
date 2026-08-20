@@ -405,6 +405,18 @@ def student_screen():
                         "Passwords do not match!"
                     )
 
+                elif not student_email.strip().lower().endswith("@vitbhopal.ac.in"):
+                    
+                    st.error(
+                        "Invalid email! Email must end with @vitbhopal.ac.in"
+                    )
+
+                elif registration_number.strip().lower() not in student_email.strip().lower():
+
+                    st.error(
+                        "Invalid email! Your email must contain your Registration Number."
+                    )
+
                 else:
 
                     registration_number = (
