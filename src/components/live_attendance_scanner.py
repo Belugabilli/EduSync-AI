@@ -60,7 +60,14 @@ class LiveAttendanceProcessor(VideoProcessorBase):
                     if self.detection_counts[sid] >= 3:
                         self.detected_ids.add(sid)
 
-        return av.VideoFrame.from_ndarray(img, format="bgr24")
+        # Return a smaller version of the image to the browser to prevent lag
+        if img.shape[1] > 640:
+            scale = 640.0 / img.shape[1]
+            display_img = cv2.resize(img, (640, int(img.shape[0] * scale)))
+        else:
+            display_img = img
+
+        return av.VideoFrame.from_ndarray(display_img, format="bgr24")
 
 def live_attendance_scanner(enrolled_students):
     st.subheader("🔴 Live Biometric Scanner")
@@ -78,10 +85,7 @@ def live_attendance_scanner(enrolled_students):
         mode=WebRtcMode.SENDRECV,
         rtc_configuration=RTC_CONFIGURATION,
         media_stream_constraints={
-            "video": {
-                "width": {"ideal": 1280, "min": 640},
-                "height": {"ideal": 720, "min": 480}
-            },
+            "video": True,
             "audio": False
         },
         video_processor_factory=LiveAttendanceProcessor,

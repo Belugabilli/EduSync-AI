@@ -49,8 +49,15 @@ class FaceEnrollmentProcessor(VideoProcessorBase):
 
         self.latest_frame = img.copy()
 
+        # Scale down the video feed sent back to the browser to prevent network lag
+        if img.shape[1] > 640:
+            scale = 640.0 / img.shape[1]
+            display_img = cv2.resize(img, (640, int(img.shape[0] * scale)))
+        else:
+            display_img = img
+
         return av.VideoFrame.from_ndarray(
-            img,
+            display_img,
             format="bgr24"
         )
 
@@ -143,10 +150,7 @@ def face_enrollment_video():
         rtc_configuration=RTC_CONFIGURATION,
 
         media_stream_constraints={
-            "video": {
-                "width": {"ideal": 1280, "min": 640},
-                "height": {"ideal": 720, "min": 480}
-            },
+            "video": True,
             "audio": False
         },
 
