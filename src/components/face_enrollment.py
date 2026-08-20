@@ -49,15 +49,8 @@ class FaceEnrollmentProcessor(VideoProcessorBase):
 
         self.latest_frame = img.copy()
 
-        # Scale down the video feed sent back to the browser to prevent network lag
-        if img.shape[1] > 640:
-            scale = 640.0 / img.shape[1]
-            display_img = cv2.resize(img, (640, int(img.shape[0] * scale)))
-        else:
-            display_img = img
-
         return av.VideoFrame.from_ndarray(
-            display_img,
+            img,
             format="bgr24"
         )
 

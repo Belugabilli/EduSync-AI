@@ -28,19 +28,17 @@ RTC_CONFIGURATION = RTCConfiguration(
     }
 )
 
+import threading
+
 class LiveAttendanceProcessor(VideoProcessorBase):
     def __init__(self):
         self.detected_ids = set()
-        self.frame_count = 0
         self.detection_counts = {}
+        self.is_processing = False
 
-    def recv(self, frame):
-        img = frame.to_ndarray(format="bgr24")
-        
-        # Process every 5th frame to prevent video lag
-        self.frame_count += 1
-        if self.frame_count % 5 == 0:
-            rgb_img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    def _process_ml(self, img_copy):
+        try:
+            rgb_img = cv2.cvtColor(img_copy, cv2.COLOR_BGR2RGB)
             
             # Downscale to max 640px width to ensure real-time ML performance
             if rgb_img.shape[1] > 640:
@@ -56,18 +54,23 @@ class LiveAttendanceProcessor(VideoProcessorBase):
                 for sid in detected_student_dict.keys():
                     self.detection_counts[sid] = self.detection_counts.get(sid, 0) + 1
                     
-                    # Require 3 positive hits to eliminate 1-frame glitches (False Positives)
+                    # Require 3 positive hits to eliminate 1-frame glitches
                     if self.detection_counts[sid] >= 3:
                         self.detected_ids.add(sid)
+        finally:
+            self.is_processing = False
 
-        # Return a smaller version of the image to the browser to prevent lag
-        if img.shape[1] > 640:
-            scale = 640.0 / img.shape[1]
-            display_img = cv2.resize(img, (640, int(img.shape[0] * scale)))
-        else:
-            display_img = img
+    def recv(self, frame):
+        img = frame.to_ndarray(format="bgr24")
+        
+        # If not currently processing a frame, spawn a thread to process this one
+        if not self.is_processing:
+            self.is_processing = True
+            img_copy = img.copy()
+            threading.Thread(target=self._process_ml, args=(img_copy,), daemon=True).start()
 
-        return av.VideoFrame.from_ndarray(display_img, format="bgr24")
+        # Instantly return the display frame unmodified
+        return av.VideoFrame.from_ndarray(img, format="bgr24")
 
 def live_attendance_scanner(enrolled_students):
     st.subheader("🔴 Live Biometric Scanner")
