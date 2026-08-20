@@ -61,16 +61,14 @@ class LiveAttendanceProcessor(VideoProcessorBase):
             self.is_processing = False
 
     def recv(self, frame):
-        img = frame.to_ndarray(format="bgr24")
-        
-        # If not currently processing a frame, spawn a thread to process this one
+        # If not currently processing a frame, extract the image and spawn a thread
         if not self.is_processing:
             self.is_processing = True
-            img_copy = img.copy()
-            threading.Thread(target=self._process_ml, args=(img_copy,), daemon=True).start()
+            img = frame.to_ndarray(format="bgr24")
+            threading.Thread(target=self._process_ml, args=(img,), daemon=True).start()
 
-        # Instantly return the display frame unmodified
-        return av.VideoFrame.from_ndarray(img, format="bgr24")
+        # Instantly return the RAW original frame (zero Python CPU overhead!)
+        return frame
 
 def live_attendance_scanner(enrolled_students):
     st.subheader("🔴 Live Biometric Scanner")

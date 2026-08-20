@@ -37,15 +37,8 @@ class FaceEnrollmentProcessor(VideoProcessorBase):
         self.latest_frame = None
 
     def recv(self, frame):
-
-        img = frame.to_ndarray(format="bgr24")
-
-        self.latest_frame = img.copy()
-
-        return av.VideoFrame.from_ndarray(
-            img,
-            format="bgr24"
-        )
+        self.latest_frame = frame.to_ndarray(format="bgr24")
+        return frame
 
 
 def face_enrollment_video():
