@@ -206,24 +206,51 @@ def predict_attendance(class_image_np):
         return (detected_student, [], len(encodings))
 
     for encoding in encodings:
-        # Compute Euclidean distance against all enrolled face embeddings
-        distances = [
-            np.linalg.norm(emb - encoding)
-            for emb in X_train
+
+        # ---------------------------------------------
+        # SVM candidate prediction
+        # ---------------------------------------------
+
+        if clf is not None and len(all_students) >= 2:
+            predicted_id = int(clf.predict([encoding])[0])
+        else:
+            predicted_id = int(all_students[0])
+
+        # ---------------------------------------------
+        # Compare against ALL embeddings belonging
+        # to the predicted student.
+        # ---------------------------------------------
+
+        student_embeddings = [
+            X_train[index]
+            for index, student_id
+            in enumerate(y_train)
+            if student_id == predicted_id
         ]
 
-        if not distances:
+        if not student_embeddings:
+
             continue
 
-        min_idx = np.argmin(distances)
-        best_match_score = distances[min_idx]
-        predicted_id = int(y_train[min_idx])
+        distances = [
+            np.linalg.norm(
+                embedding - encoding
+            )
+            for embedding
+            in student_embeddings
+        ]
 
-        # Strict resemblance threshold (0.50 for high precision, 0.60 is dlib standard)
-        resemblance_threshold = 0.52
+        best_match_score = min(
+            distances
+        )
+
+        resemblance_threshold = 0.55
 
         if best_match_score <= resemblance_threshold:
-            detected_student[predicted_id] = True
+
+            detected_student[
+                predicted_id
+            ] = True
 
     return (
         detected_student,
